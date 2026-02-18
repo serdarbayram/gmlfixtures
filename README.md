@@ -4,6 +4,13 @@ It is completely free—feel free to use it however you like.
 If I made any mistakes in my writing, I’m sorry, my English isn’t very good
 You can arrange and use the project as you wish.
 
+New Features Added – 18 / 02 / 2026 
+What’s New
+1 - Now when you zoom in and zoom out, it zooms toward the position of the mouse cursor.
+2 - Pan mode has been added to move the screen. You can move the view by holding down the middle mouse button.
+3 - Selection mode has been added.
+4 - In selection mode, you can select one or multiple fixture points, move them, or delete them all at once using the Delete key.
+5 - You can now save the fixtures you created and load them again later.
 For immediate use: : https://serdarbayram.github.io/gmlfixtures/
 
 ![1](https://github.com/user-attachments/assets/3d2c4d03-b8e5-493a-a0e1-50a489459c54)
