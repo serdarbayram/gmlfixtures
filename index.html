@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameMaker Fixture Editor</title>
+    <title>GameMaker Fixture Editor - Pro</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -15,7 +15,7 @@
         }
         .container { display: flex; height: 100vh; }
         .sidebar {
-            width: 340px; /* Sidebar biraz genişletildi */
+            width: 340px;
             background: rgba(45, 45, 66, 0.95);
             backdrop-filter: blur(10px);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -63,9 +63,10 @@
         .point-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 6px 10px; margin-bottom: 2px; background: rgba(255, 255, 255, 0.03);
-            border-radius: 4px; font-size: 11px;
+            border-radius: 4px; font-size: 11px; cursor: pointer;
         }
         .point-item:hover { background: rgba(255, 255, 255, 0.08); }
+        .point-item.selected { background: rgba(100, 255, 218, 0.3); border-left: 2px solid #64ffda; }
         .point-delete { background: none; border: none; color: #ff4757; cursor: pointer; font-size: 14px; padding: 0 5px; }
         .code-output {
             background: #111; border: 1px solid #333; border-radius: 6px; padding: 10px;
@@ -95,7 +96,6 @@
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
         
-        /* Warning Boxes */
         .warning {
             background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107;
             color: #ffca2c; padding: 8px; border-radius: 0 4px 4px 0;
@@ -127,7 +127,6 @@
 <body>
     <div class="container">
         <div class="sidebar">
-            <!-- Language Selector -->
             <select id="langSelect" class="lang-select" onchange="setLanguage(this.value)">
                 <option value="en" selected>🇺🇸 English</option>
                 <option value="tr">🇹🇷 Türkçe</option>
@@ -143,10 +142,20 @@
             </div>
 
             <div class="section">
+                <h3 data-i18n="project_files">📁 Project Files</h3>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-success" style="flex:1" onclick="saveProject()" data-i18n="btn_save">💾 Save</button>
+                    <button class="btn btn-primary" style="flex:1" onclick="document.getElementById('loadProjectFile').click()" data-i18n="btn_load">📂 Load</button>
+                    <input type="file" id="loadProjectFile" accept=".json" style="display: none;" onchange="loadProject(event)">
+                </div>
+            </div>
+
+            <div class="section">
                 <h3 data-i18n="tools">🛠️ Tools</h3>
                 <div class="mode-buttons">
-                    <button class="mode-btn active" data-mode="add" data-i18n="btn_add" data-i18n-title="btn_add_title" title="Add Point">➕ Add</button>
-                    <button class="mode-btn" data-mode="move" data-i18n="btn_move" data-i18n-title="btn_move_title" title="Move Point">✋ Move</button>
+                    <button class="mode-btn active" data-mode="add" data-i18n="btn_add" title="Add Point">➕</button>
+                    <button class="mode-btn" data-mode="move" data-i18n="btn_move" title="Move Point">✋</button>
+                    <button class="mode-btn" data-mode="select" data-i18n="btn_select" title="Box Select">🔳</button>
                 </div>
                 
                 <div style="margin-bottom: 5px; font-size: 12px; color: #aaa;" data-i18n="shape_algo">Shape Algorithm:</div>
@@ -208,7 +217,6 @@
             </div>
 
             <div class="section" style="flex: 1; display: flex; flex-direction: column;">
-                <!-- YENİ EKLENEN UYARI BÖLÜMÜ -->
                 <div class="important-note" data-i18n="important_note">
                     <b>Important:</b> In your Object's physics settings, under "Modify Collision Shape", set the "Physics Collision Shape" type to "Convex Shape" and leave it empty.
                 </div>
@@ -233,7 +241,7 @@
                 <button class="btn btn-secondary" onclick="resetView()" data-i18n="btn_center">Center View</button>
                 <div style="flex:1"></div>
                 <div style="font-size: 12px; color: #aaa;">
-                    Mouse: <span id="mouseX">0</span>, <span id="mouseY">0</span>
+                    Mouse: <span id="mouseX">0</span>, <span id="mouseY">0</span> | <span data-i18n="pan_hint">Mid-Click to Pan</span> | <span data-i18n="del_hint">DEL to Delete</span>
                 </div>
             </div>
             <div class="canvas-container">
@@ -243,17 +251,19 @@
     </div>
 
     <script>
-        // --- TRANSLATIONS ---
         const translations = {
             en: {
                 sprite_upload: "🖼️ Sprite Upload",
                 select_file: "Select File...",
                 no_sprite: "No sprite loaded",
+                project_files: "📁 Project Files", // Yeni
+                btn_save: "💾 Save", // Yeni
+                btn_load: "📂 Load", // Yeni
+                msg_load_error: "Error loading file! Please select a valid JSON.", // Yeni
                 tools: "🛠️ Tools",
                 btn_add: "➕ Add",
-                btn_add_title: "Add Point",
                 btn_move: "✋ Move",
-                btn_move_title: "Move Point",
+                btn_select: "🔳 Select",
                 shape_algo: "Shape Algorithm:",
                 mode_convex: "Convex (Auto)",
                 mode_concave: "Concave (Free)",
@@ -268,15 +278,15 @@
                 btn_copy: "Copy",
                 btn_center: "Center View",
                 btn_copied: "Copied!",
+                pan_hint: "Mid-Click: Pan",
+                del_hint: "DEL: Delete Selected",
                 
-                // Dynamic Messages
                 important_note: "<b>Important:</b> In your Object's physics settings, under \"Modify Collision Shape\", set the \"Physics Collision Shape\" type to \"Convex Shape\" and leave it empty.",
                 msg_convex: "Convex mode: Points are automatically sorted, concavities are removed.",
                 msg_concave: "Concave mode: Draw points <b>clockwise</b> and sequentially. The shape will be triangulated.",
                 msg_min_points: "Need at least 3 points!",
                 msg_code_placeholder: "// Code will appear here...",
                 
-                // Code Comments
                 code_fixture_create: "// Fixture Creation Code",
                 code_warning_limit: "// WARNING: Box2D supports max 8 points per convex polygon.",
                 code_warning_auto: "// Convex hull was generated but has more than 8 points.",
@@ -288,11 +298,14 @@
                 sprite_upload: "🖼️ Sprite Yükle",
                 select_file: "Dosya Seç...",
                 no_sprite: "Henüz sprite yüklenmedi",
+                project_files: "📁 Proje Dosyaları", // Yeni
+                btn_save: "💾 Kaydet", // Yeni
+                btn_load: "📂 Yükle", // Yeni
+                msg_load_error: "Dosya okunurken hata oluştu! Geçerli bir JSON seçin.", // Yeni
                 tools: "🛠️ Araçlar",
                 btn_add: "➕ Ekle",
-                btn_add_title: "Nokta Ekle",
                 btn_move: "✋ Taşı",
-                btn_move_title: "Nokta Taşı",
+                btn_select: "🔳 Seç",
                 shape_algo: "Şekil Algoritması:",
                 mode_convex: "Convex (Otomatik)",
                 mode_concave: "Concave (Serbest)",
@@ -307,15 +320,15 @@
                 btn_copy: "Kopyala",
                 btn_center: "Merkezle",
                 btn_copied: "Kopyalandı!",
+                pan_hint: "Orta Tuş: Kaydır",
+                del_hint: "DEL: Seçilenleri Sil",
 
-                // Dinamik Mesajlar
                 important_note: "<b>Önemli:</b> Objenizin fizik ayarları bölümünden \"Modify Collision Shape\" bölümünden \"Physics Collision Shape\" tipini \"Convex Shape\" yapıp boş bırakın.",
                 msg_convex: "Convex modu: Noktalar otomatik sıralanır, içbükeylikler kapatılır.",
                 msg_concave: "Concave modu: Noktaları <b>saat yönünde</b> ve sırasıyla çizmelisiniz. Şekil üçgenlere bölünür.",
                 msg_min_points: "En az 3 nokta gerekli!",
                 msg_code_placeholder: "// Kod buraya gelecek...",
 
-                // Kod Yorumları
                 code_fixture_create: "// Fixture Oluşturma Kodu",
                 code_warning_limit: "// UYARI: Box2D convex polygon başına en fazla 8 nokta destekler.",
                 code_warning_auto: "// Otomatik olarak convex hull alındı ancak 8'den fazla nokta var.",
@@ -326,42 +339,59 @@
         };
 
         let currentLang = 'en';
-
-        // --- TEMEL DEĞİŞKENLER ---
         let canvas, ctx;
         let sprite = null;
         let points = [];
         let mode = 'add'; 
         let shapeType = 'convex'; 
-        let selectedPoint = -1;
-        let isDragging = false;
+        
+        let selectedIndices = new Set(); 
+        let selectionBox = null;
+
+        let isDraggingPoint = false;
+        let isPanning = false;
+        let lastMouse = { x: 0, y: 0 };
         let camera = { x: 0, y: 0, zoom: 1 };
         let gridSize = 20;
         let showGrid = true;
         let snapToGrid = false;
 
-        // --- BAŞLATMA ---
         window.onload = () => {
             canvas = document.getElementById('mainCanvas');
             ctx = canvas.getContext('2d');
-            
-            // Dil Ayarı
             setLanguage('en');
 
             window.addEventListener('resize', resizeCanvas);
             document.getElementById('spriteFile').addEventListener('change', handleFile);
+            
             canvas.addEventListener('mousedown', onMouseDown);
             canvas.addEventListener('mousemove', onMouseMove);
             canvas.addEventListener('mouseup', onMouseUp);
-            canvas.addEventListener('wheel', onWheel);
+            canvas.addEventListener('mouseleave', onMouseUp);
+            canvas.addEventListener('wheel', onWheel, { passive: false });
             
-            // UI Kontrolleri
+            // Delete Key Listener
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (selectedIndices.size > 0) {
+                        // Remove selected points
+                        points = points.filter((_, i) => !selectedIndices.has(i));
+                        selectedIndices.clear();
+                        updatePointsList();
+                    }
+                }
+            });
+
             document.querySelectorAll('.mode-btn').forEach(b => {
                 b.addEventListener('click', function() {
                     document.querySelector('.mode-btn.active').classList.remove('active');
                     this.classList.add('active');
                     mode = this.dataset.mode;
-                    selectedPoint = -1;
+                    if(mode !== 'select') selectionBox = null;
+                    if(mode === 'add') {
+                        selectedIndices.clear();
+                        updatePointsList();
+                    }
                 });
             });
 
@@ -377,27 +407,14 @@
             loop();
         };
 
-        // --- DİL FONKSİYONLARI ---
-        function t(key) {
-            return translations[currentLang][key] || key;
-        }
+        function t(key) { return translations[currentLang][key] || key; }
 
         function setLanguage(lang) {
             currentLang = lang;
-            
-            // HTML elementleri güncelle
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if(translations[lang][key]) el.innerHTML = translations[lang][key];
             });
-            
-            // Title (tooltip) güncelle
-            document.querySelectorAll('[data-i18n-title]').forEach(el => {
-                const key = el.getAttribute('data-i18n-title');
-                if(translations[lang][key]) el.title = translations[lang][key];
-            });
-
-            // Dinamik alanları güncelle
             updateWarningMsg();
             document.getElementById('codeOutput').innerText = t('msg_code_placeholder');
         }
@@ -420,17 +437,22 @@
             canvas.height = canvas.parentElement.clientHeight;
         }
 
-        function setShapeType(type) {
+       function setShapeType(type) {
             shapeType = type;
-            document.querySelectorAll('.shape-type-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            // Tüm butonlardan active sınıfını kaldır
+            const btns = document.querySelectorAll('.shape-type-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            
+            // İlgili tipe göre doğru butonu aktif yap
+            if(type === 'convex') btns[0].classList.add('active');
+            if(type === 'concave') btns[1].classList.add('active');
+            
             updateWarningMsg();
         }
 
         function handleFile(e) {
             const file = e.target.files[0];
             if(!file) return;
-            
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const img = new Image();
@@ -446,69 +468,180 @@
             reader.readAsDataURL(file);
         }
 
-        function getMousePos(e) {
+        function getScreenPos(e) {
             const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function getWorldPos(screenX, screenY) {
             return {
-                x: (e.clientX - rect.left - camera.x) / camera.zoom,
-                y: (e.clientY - rect.top - camera.y) / camera.zoom
+                x: (screenX - camera.x) / camera.zoom,
+                y: (screenY - camera.y) / camera.zoom
             };
         }
 
         function onMouseDown(e) {
-            const m = getMousePos(e);
-            
-            if(mode === 'add') {
-                let px = m.x, py = m.y;
-                if(snapToGrid) {
-                    px = Math.round(px/gridSize)*gridSize;
-                    py = Math.round(py/gridSize)*gridSize;
-                }
-                points.push({x: px, y: py});
-                updatePointsList();
-            } else {
-                let minDist = 10 / camera.zoom;
-                selectedPoint = -1;
-                points.forEach((p, i) => {
-                    const d = Math.hypot(p.x - m.x, p.y - m.y);
-                    if(d < minDist) {
-                        minDist = d;
-                        selectedPoint = i;
+            e.preventDefault();
+            const s = getScreenPos(e);
+            const w = getWorldPos(s.x, s.y);
+
+            // Middle Mouse -> PAN
+            if(e.button === 1) {
+                isPanning = true;
+                lastMouse = { x: s.x, y: s.y };
+                return;
+            }
+
+            // Left Mouse
+            if(e.button === 0) {
+                if(mode === 'add') {
+                    let px = w.x, py = w.y;
+                    if(snapToGrid) {
+                        px = Math.round(px/gridSize)*gridSize;
+                        py = Math.round(py/gridSize)*gridSize;
                     }
-                });
-                if(selectedPoint !== -1) isDragging = true;
+                    points.push({x: px, y: py});
+                    selectedIndices.clear();
+                    selectedIndices.add(points.length - 1);
+                    updatePointsList();
+                } 
+                else if (mode === 'move' || mode === 'select') {
+                    // Check if clicked ON a point first
+                    let minDist = 10 / camera.zoom;
+                    let clickedIndex = -1;
+                    
+                    points.forEach((p, i) => {
+                        const d = Math.hypot(p.x - w.x, p.y - w.y);
+                        if(d < minDist) {
+                            minDist = d;
+                            clickedIndex = i;
+                        }
+                    });
+
+                    if(clickedIndex !== -1) {
+                        // Clicked a point - Drag Logic
+                        if (!selectedIndices.has(clickedIndex)) {
+                            // If clicked unselected point, select it (exclusive unless Shift)
+                            if (!e.shiftKey) selectedIndices.clear();
+                            selectedIndices.add(clickedIndex);
+                        }
+                        // Start dragging regardless of mode
+                        isDraggingPoint = true;
+                        lastMouse = { x: w.x, y: w.y }; 
+                        updatePointsList();
+                    } else {
+                        // Clicked Empty Space
+                        if (mode === 'select') {
+                            // Start Box Selection
+                            selectionBox = { sx: w.x, sy: w.y, w: 0, h: 0 };
+                            if(!e.shiftKey) selectedIndices.clear();
+                            updatePointsList();
+                        } else if (mode === 'move') {
+                            selectedIndices.clear();
+                            updatePointsList();
+                        }
+                    }
+                }
             }
         }
 
         function onMouseMove(e) {
-            const m = getMousePos(e);
-            document.getElementById('mouseX').innerText = Math.round(m.x);
-            document.getElementById('mouseY').innerText = Math.round(m.y);
+            const s = getScreenPos(e);
+            const w = getWorldPos(s.x, s.y);
+            
+            document.getElementById('mouseX').innerText = Math.round(w.x);
+            document.getElementById('mouseY').innerText = Math.round(w.y);
 
-            if(isDragging && selectedPoint !== -1) {
-                let px = m.x, py = m.y;
-                if(snapToGrid) {
-                    px = Math.round(px/gridSize)*gridSize;
-                    py = Math.round(py/gridSize)*gridSize;
-                }
-                points[selectedPoint] = {x: px, y: py};
+            if(isPanning) {
+                const dx = s.x - lastMouse.x;
+                const dy = s.y - lastMouse.y;
+                camera.x += dx;
+                camera.y += dy;
+                lastMouse = { x: s.x, y: s.y };
+                return;
+            }
+
+            if(isDraggingPoint && selectedIndices.size > 0) {
+                let dx = w.x - lastMouse.x;
+                let dy = w.y - lastMouse.y;
+
+                selectedIndices.forEach(index => {
+                    points[index].x += dx;
+                    points[index].y += dy;
+                });
+
+                lastMouse = { x: w.x, y: w.y };
                 updatePointsList();
+            }
+
+            if (mode === 'select' && selectionBox) {
+                selectionBox.w = w.x - selectionBox.sx;
+                selectionBox.h = w.y - selectionBox.sy;
             }
         }
 
-        function onMouseUp() { isDragging = false; }
+        function onMouseUp(e) {
+            if (mode === 'select' && selectionBox) {
+                const bx = selectionBox.w > 0 ? selectionBox.sx : selectionBox.sx + selectionBox.w;
+                const by = selectionBox.h > 0 ? selectionBox.sy : selectionBox.sy + selectionBox.h;
+                const bw = Math.abs(selectionBox.w);
+                const bh = Math.abs(selectionBox.h);
+
+                points.forEach((p, i) => {
+                    if (p.x >= bx && p.x <= bx + bw && p.y >= by && p.y <= by + bh) {
+                        selectedIndices.add(i);
+                    }
+                });
+                
+                selectionBox = null;
+                updatePointsList();
+            }
+
+            if (isDraggingPoint && snapToGrid) {
+                selectedIndices.forEach(index => {
+                    points[index].x = Math.round(points[index].x / gridSize) * gridSize;
+                    points[index].y = Math.round(points[index].y / gridSize) * gridSize;
+                });
+                updatePointsList();
+            }
+
+            isPanning = false;
+            isDraggingPoint = false;
+        }
 
         function onWheel(e) {
             e.preventDefault();
-            const factor = e.deltaY > 0 ? 0.9 : 1.1;
-            changeZoom(factor - 1);
+            
+            const zoomIntensity = 0.1;
+            const wheel = e.deltaY < 0 ? 1 : -1;
+            const zoomFactor = Math.exp(wheel * zoomIntensity);
+
+            const s = getScreenPos(e);
+            const worldBefore = getWorldPos(s.x, s.y);
+
+            camera.zoom *= zoomFactor;
+            camera.zoom = Math.max(0.1, Math.min(10, camera.zoom));
+
+            camera.x = s.x - worldBefore.x * camera.zoom;
+            camera.y = s.y - worldBefore.y * camera.zoom;
+
+            document.getElementById('zoomLevel').innerText = Math.round(camera.zoom*100) + '%';
         }
 
         function changeZoom(delta) {
-            let oldZoom = camera.zoom;
-            if(Math.abs(delta) < 0.5) camera.zoom *= (1 + delta);
-            else camera.zoom = delta;
+            const centerS = { x: canvas.width/2, y: canvas.height/2 };
+            const worldBefore = getWorldPos(centerS.x, centerS.y);
             
-            camera.zoom = Math.max(0.1, Math.min(5, camera.zoom));
+            let newZoom = camera.zoom;
+            if(Math.abs(delta) < 0.5) newZoom *= (1 + delta); 
+            else newZoom = delta; 
+            
+            newZoom = Math.max(0.1, Math.min(10, newZoom));
+            camera.zoom = newZoom;
+
+            camera.x = centerS.x - worldBefore.x * camera.zoom;
+            camera.y = centerS.y - worldBefore.y * camera.zoom;
+            
             document.getElementById('zoomLevel').innerText = Math.round(camera.zoom*100) + '%';
         }
 
@@ -516,6 +649,9 @@
             camera.x = canvas.width / 2;
             camera.y = canvas.height / 2;
             camera.zoom = 1;
+            if(sprite) {
+                 camera.zoom = Math.min((canvas.width*0.8)/sprite.w, (canvas.height*0.8)/sprite.h);
+            }
             changeZoom(0);
         }
 
@@ -527,6 +663,15 @@
             points.forEach((p, i) => {
                 const div = document.createElement('div');
                 div.className = 'point-item';
+                if(selectedIndices.has(i)) div.classList.add('selected');
+                
+                div.onclick = (e) => {
+                    if(e.target.classList.contains('point-delete')) return;
+                    if(!e.ctrlKey && !e.shiftKey) selectedIndices.clear();
+                    selectedIndices.add(i);
+                    updatePointsList();
+                };
+
                 div.innerHTML = `
                     <span>${i+1}: (${Math.round(p.x)}, ${Math.round(p.y)})</span>
                     <button class="point-delete" onclick="deletePoint(${i})">×</button>
@@ -537,11 +682,14 @@
 
         function deletePoint(i) {
             points.splice(i, 1);
+            selectedIndices.delete(i);
+            selectedIndices.clear(); 
             updatePointsList();
         }
         
         function clearAllPoints() {
             points = [];
+            selectedIndices.clear();
             updatePointsList();
         }
 
@@ -552,17 +700,21 @@
                 ctx.save();
                 ctx.strokeStyle = 'rgba(255,255,255,0.05)';
                 ctx.lineWidth = 1;
-                const startX = (camera.x % (gridSize*camera.zoom)) - (gridSize*camera.zoom);
-                const startY = (camera.y % (gridSize*camera.zoom)) - (gridSize*camera.zoom);
                 
-                for(let x = startX; x < canvas.width; x += gridSize*camera.zoom) {
+                const zoomedGrid = gridSize * camera.zoom;
+                const startWorldX = Math.floor(-camera.x / zoomedGrid) * gridSize;
+                const startWorldY = Math.floor(-camera.y / zoomedGrid) * gridSize;
+                const startScreenX = startWorldX * camera.zoom + camera.x;
+                const startScreenY = startWorldY * camera.zoom + camera.y;
+
+                for(let x = startScreenX; x < canvas.width; x += zoomedGrid) {
                     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
                 }
-                for(let y = startY; y < canvas.height; y += gridSize*camera.zoom) {
+                for(let y = startScreenY; y < canvas.height; y += zoomedGrid) {
                     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
                 }
                 
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.beginPath(); ctx.moveTo(camera.x, 0); ctx.lineTo(camera.x, canvas.height); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(0, camera.y); ctx.lineTo(canvas.width, camera.y); ctx.stroke();
                 ctx.restore();
@@ -615,11 +767,28 @@
                 }
 
                 points.forEach((p, i) => {
-                    ctx.fillStyle = (i === selectedPoint) ? '#fff' : '#f093fb';
+                    const isSelected = selectedIndices.has(i);
+                    ctx.fillStyle = isSelected ? '#ffeb3b' : '#f093fb';
+                    if (isSelected) {
+                        ctx.shadowColor = '#ffeb3b';
+                        ctx.shadowBlur = 10;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+                    
                     ctx.beginPath();
-                    ctx.arc(p.x, p.y, 4/camera.zoom, 0, Math.PI*2);
+                    ctx.arc(p.x, p.y, (isSelected ? 5 : 4)/camera.zoom, 0, Math.PI*2);
                     ctx.fill();
+                    ctx.shadowBlur = 0;
                 });
+            }
+
+            if(mode === 'select' && selectionBox) {
+                ctx.fillStyle = 'rgba(100, 255, 218, 0.1)';
+                ctx.strokeStyle = '#64ffda';
+                ctx.lineWidth = 1 / camera.zoom;
+                ctx.fillRect(selectionBox.sx, selectionBox.sy, selectionBox.w, selectionBox.h);
+                ctx.strokeRect(selectionBox.sx, selectionBox.sy, selectionBox.w, selectionBox.h);
             }
 
             ctx.restore();
@@ -639,10 +808,7 @@
             let vertices = pts.slice();
             let triangles = [];
             if (vertices.length < 3) return [];
-
-            let count = 0;
-            const maxCount = vertices.length * 3; 
-
+            let count = 0; const maxCount = vertices.length * 3; 
             while (vertices.length > 3) {
                 if(count++ > maxCount) break;
                 let earFound = false;
@@ -650,23 +816,17 @@
                     const prev = vertices[(i - 1 + vertices.length) % vertices.length];
                     const curr = vertices[i];
                     const next = vertices[(i + 1) % vertices.length];
-
                     if (isEar(prev, curr, next, vertices)) {
                         triangles.push([prev, curr, next]);
                         vertices.splice(i, 1);
-                        earFound = true;
-                        break;
+                        earFound = true; break;
                     }
                 }
-                if (!earFound) {
-                    triangles.push([vertices[0], vertices[1], vertices[2]]);
-                    vertices.shift();
-                }
+                if (!earFound) { triangles.push([vertices[0], vertices[1], vertices[2]]); vertices.shift(); }
             }
             triangles.push([vertices[0], vertices[1], vertices[2]]);
             return triangles;
         }
-
         function isEar(p1, p2, p3, polygon) {
             if (!isConvex(p1, p2, p3)) return false;
             for (let i = 0; i < polygon.length; i++) {
@@ -676,11 +836,7 @@
             }
             return true;
         }
-
-        function isConvex(a, b, c) {
-            return ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) >= 0; 
-        }
-
+        function isConvex(a, b, c) { return ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) >= 0; }
         function pointInTriangle(p, a, b, c) {
             const area = 0.5 * (-b.y * c.x + a.y * (-b.x + c.x) + a.x * (b.y - c.y) + b.x * c.y);
             const s = 1 / (2 * area) * (a.y * c.x - a.x * c.y + (c.y - a.y) * p.x + (a.x - c.x) * p.y);
@@ -689,11 +845,7 @@
         }
 
         function generateCode() {
-            if(points.length < 3) {
-                alert(t('msg_min_points'));
-                return;
-            }
-
+            if(points.length < 3) { alert(t('msg_min_points')); return; }
             const props = {
                 density: document.getElementById('density').value,
                 restitution: document.getElementById('restitution').value,
@@ -703,48 +855,28 @@
                 awake: document.getElementById('awake').checked
             };
 
-            let code = `${t('code_fixture_create')}\n`;
-            code += `var fix, points;\n\n`;
+            let code = `${t('code_fixture_create')}\nvar fix, points;\n\n`;
 
             if(shapeType === 'convex') {
                 const hull = getConvexHull([...points]);
-                
                 if(hull.length > 8) {
-                    code += `${t('code_warning_limit')}\n`;
-                    code += `${t('code_warning_auto')}\n`;
-                    code += `${t('code_warning_error')}\n`;
+                    code += `${t('code_warning_limit')}\n${t('code_warning_auto')}\n${t('code_warning_error')}\n`;
                 }
-
-                code += `fix = physics_fixture_create();\n`;
-                code += `physics_fixture_set_polygon_shape(fix);\n`;
-                
-                hull.forEach(p => {
-                    code += `physics_fixture_add_point(fix, ${Math.round(p.x)}, ${Math.round(p.y)});\n`;
-                });
-
+                code += `fix = physics_fixture_create();\nphysics_fixture_set_polygon_shape(fix);\n`;
+                hull.forEach(p => { code += `physics_fixture_add_point(fix, ${Math.round(p.x)}, ${Math.round(p.y)});\n`; });
                 code += generatePropsCode('fix', props);
-                code += `physics_fixture_bind(fix, id);\n`;
-                code += `physics_fixture_delete(fix);\n`;
-
+                code += `physics_fixture_bind(fix, id);\nphysics_fixture_delete(fix);\n`;
             } else {
                 const triangles = triangulatePolygon([...points]);
                 code += `${t('code_concave_split').replace('{n}', triangles.length)}\n\n`;
-
                 triangles.forEach((tri, i) => {
                     code += `${t('code_part').replace('{n}', i+1)}\n`;
-                    code += `fix = physics_fixture_create();\n`;
-                    code += `physics_fixture_set_polygon_shape(fix);\n`;
-                    
-                    tri.forEach(p => {
-                        code += `physics_fixture_add_point(fix, ${Math.round(p.x)}, ${Math.round(p.y)});\n`;
-                    });
-
+                    code += `fix = physics_fixture_create();\nphysics_fixture_set_polygon_shape(fix);\n`;
+                    tri.forEach(p => { code += `physics_fixture_add_point(fix, ${Math.round(p.x)}, ${Math.round(p.y)});\n`; });
                     code += generatePropsCode('fix', props);
-                    code += `physics_fixture_bind(fix, id);\n`;
-                    code += `physics_fixture_delete(fix);\n\n`;
+                    code += `physics_fixture_bind(fix, id);\nphysics_fixture_delete(fix);\n\n`;
                 });
             }
-
             document.getElementById('codeOutput').innerText = code;
         }
 
@@ -767,7 +899,6 @@ physics_fixture_set_angular_damping(${varName}, 0.1);
             window.getSelection().addRange(range);
             document.execCommand('copy');
             window.getSelection().removeAllRanges();
-            
             const btn = document.getElementById('copyBtn');
             const oldText = btn.innerText;
             btn.innerText = t('btn_copied');
@@ -781,6 +912,70 @@ physics_fixture_set_angular_damping(${varName}, 0.1);
             document.getElementById('group').value = 1;
             document.getElementById('sensor').checked = false;
             document.getElementById('awake').checked = true;
+        }
+
+        // --- SAVE / LOAD SİSTEMİ ---
+        function saveProject() {
+            const projectData = {
+                points: points,
+                shapeType: shapeType,
+                physics: {
+                    density: document.getElementById('density').value,
+                    restitution: document.getElementById('restitution').value,
+                    friction: document.getElementById('friction').value,
+                    group: document.getElementById('group').value,
+                    sensor: document.getElementById('sensor').checked,
+                    awake: document.getElementById('awake').checked
+                }
+            };
+
+            const jsonString = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "fixture_data.json";
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadProject(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+
+                    if (data.points) points = data.points;
+                    if (data.shapeType) setShapeType(data.shapeType);
+
+                    if (data.physics) {
+                        document.getElementById('density').value = data.physics.density || 0.5;
+                        document.getElementById('restitution').value = data.physics.restitution || 0.1;
+                        document.getElementById('friction').value = data.physics.friction || 0.2;
+                        document.getElementById('group').value = data.physics.group || 1;
+                        document.getElementById('sensor').checked = data.physics.sensor || false;
+                        document.getElementById('awake').checked = data.physics.awake ?? true;
+                    }
+
+                    selectedIndices.clear();
+                    updatePointsList();
+                    generateCode(); 
+                    
+                    e.target.value = '';
+
+                } catch (err) {
+                    alert(t('msg_load_error'));
+                }
+            };
+            
+            reader.readAsText(file);
         }
     </script>
 </body>
