@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMaker Fixture Editor - Pro</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <select id="langSelect" data-i18n-title="language" class="lang-select" onchange="setLanguage(this.value)">
+                <option value="en" selected>🇺🇸 English</option>
+                <option value="tr">🇹🇷 Türkçe</option>
+            </select>
+
+            <div class="section">
+                <h3 data-i18n="sprite_upload">🖼️ Sprite Upload</h3>
+                <div class="file-input">
+                    <input type="file" id="spriteFile" accept="image/*">
+                    <label for="spriteFile" data-i18n="select_file">Select File...</label>
+                </div>
+                <div class="sprite-info" id="spriteInfo" data-i18n="no_sprite">No sprite loaded</div>
+            </div>
+
+            <div class="section">
+                <h3 data-i18n="project_files">📁 Project Files</h3>
+                <div class="button-row">
+                    <button class="flex-fill btn btn-success" onclick="saveProject()" data-i18n="btn_save">💾 Save</button>
+                    <button class="flex-fill btn btn-primary" onclick="document.getElementById('loadProjectFile').click()" data-i18n="btn_load">📂 Load</button>
+                    <input class="hidden" type="file" id="loadProjectFile" accept=".json" onchange="loadProject(event)">
+                </div>
+            </div>
+
+            <div class="section preset-panel">
+                <label for="shapeList" data-i18n="shape_list">Active shape</label>
+                <select id="shapeList" onchange="activateShape(Number(this.value))"></select>
+                <label for="shapeName" data-i18n="shape_name">Shape name</label>
+                <input id="shapeName" type="text" maxlength="80" onchange="renameActiveShape(this.value)" onkeydown="if(event.key === 'Enter') this.blur()">
+                <button class="btn btn-secondary" onclick="deleteActiveShape()" data-i18n="shape_delete">Delete Active Shape</button>
+                <h3 data-i18n="presets_header">◇ Geometric Shapes</h3>
+                <label for="presetType" data-i18n="preset_type">Shape</label>
+                <select id="presetType" onchange="updatePresetFields()">
+                    <option value="circle" data-i18n="preset_circle">Circle</option>
+                    <option value="ellipse" data-i18n="preset_ellipse">Ellipse</option>
+                    <option value="rectangle" data-i18n="preset_rectangle">Rectangle / Square</option>
+                    <option value="triangle" data-i18n="preset_triangle">Equilateral Triangle</option>
+                    <option value="polygon" data-i18n="preset_polygon">Regular Polygon</option>
+                </select>
+                <div class="info-row">
+                    <label for="presetWidth" id="presetWidthLabel" data-i18n="preset_diameter">Diameter (px)</label>
+                    <input id="presetWidth" type="number" min="2" max="10000" value="100" step="0.01" oninput="cancelMeasurement(); cancelPresetPlacement()">
+                </div>
+                <div class="button-row">
+                    <button class="btn btn-primary flex-fill" onclick="startDiameterMeasurement()" data-i18n="measure_diameter">Measure Diameter / Width</button>
+                    <button class="btn btn-secondary" id="cancelMeasurement" hidden onclick="cancelMeasurement()" data-i18n="preset_cancel">Cancel</button>
+                </div>
+                <p class="preset-help" data-i18n="measure_help"></p>
+                <div class="info-row" id="presetHeightRow" hidden>
+                    <label for="presetHeight" data-i18n="preset_height">Height (px)</label>
+                    <input id="presetHeight" type="number" min="2" max="10000" value="100" step="1" oninput="cancelPresetPlacement()">
+                </div>
+                <div class="info-row" id="presetCountRow">
+                    <label for="presetCount" data-i18n="preset_count">Point count (3–64)</label>
+                    <input id="presetCount" type="number" min="3" max="64" value="8" step="1" oninput="cancelPresetPlacement()">
+                </div>
+                <div class="info-row">
+                    <label for="presetRotation" data-i18n="preset_rotation">Rotation (°)</label>
+                    <input id="presetRotation" type="number" value="0" step="1" oninput="cancelPresetPlacement()">
+                </div>
+                <p class="preset-help" data-i18n="preset_help"></p>
+                <div class="button-row">
+                    <button class="btn btn-success flex-fill" onclick="startPresetPlacement()" data-i18n="preset_place">Confirm and Place</button>
+                    <button class="btn btn-secondary" id="cancelPreset" hidden onclick="cancelPresetPlacement()" data-i18n="preset_cancel">Cancel</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 data-i18n="tools">🛠️ Tools</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" data-mode="add" data-i18n="btn_add" title="Add Point" data-i18n-title="title_add">➕</button>
+                    <button class="mode-btn" data-mode="move" data-i18n="btn_move" title="Move Point" data-i18n-title="title_move">✋</button>
+                    <button class="mode-btn" data-mode="select" data-i18n="btn_select" title="Box Select" data-i18n-title="title_select">🔳</button>
+                </div>
+                
+                <div class="tool-label" data-i18n="shape_algo">Shape Algorithm:</div>
+                <div class="shape-type-container">
+                    <button class="shape-type-btn active" onclick="chooseDrawingType('convex')" data-i18n="mode_convex">Convex (Auto)</button>
+                    <button class="shape-type-btn" onclick="chooseDrawingType('concave')" data-i18n="mode_concave">Concave (Free)</button>
+                </div>
+                <button class="btn btn-success" onclick="finalizeActiveShape()" data-i18n="shape_finalize">Finish Shape</button>
+                <p class="preset-help" data-i18n="shape_finalize_help"></p>
+                
+                <div class="grid-controls">
+                    <label class="grid-option">
+                        <input type="checkbox" id="showGrid" checked> <span data-i18n="show_grid">Show Grid</span>
+                    </label>
+                    <label class="grid-option">
+                        <input type="checkbox" id="snapToGrid"> <span data-i18n="snap_grid">Snap to Grid</span>
+                    </label>
+                </div>
+
+                <div class="alignment-label" data-i18n="alignment">Alignment (Avg):</div>
+                <div class="button-row">
+                    <button class="flex-fill btn btn-secondary" onclick="alignPoints('horizontal')" data-i18n="align_h" title="Align Horizontal (Same Y)" data-i18n-title="title_align_h">↔️ Align H</button>
+                    <button class="flex-fill btn btn-secondary" onclick="alignPoints('vertical')" data-i18n="align_v" title="Align Vertical (Same X)" data-i18n-title="title_align_v">↕️ Align V</button>
+                </div>
+                
+                <div class="nudge-row info-row">
+                    <span class="info-label" data-i18n="nudge_step">Nudge Step (px):</span>
+                    <input class="nudge-input" type="number" id="nudgeStep" value="1" min="1" max="100">
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><span data-i18n="grid">Grid</span>: <span id="gridSizeValue">20px</span></span>
+                    <input class="grid-slider" type="range" id="gridSize" min="8" max="64" value="20">
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-heading">
+                    <h3><span data-i18n="points_header">📍 Points</span> (<span id="pointCount">0</span>)</h3>
+                    <button class="clear-button btn-secondary" onclick="clearAllPoints()" data-i18n="btn_clear">Clear</button>
+                </div>
+                <div class="points-list" id="pointsList"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-heading">
+                    <h3 data-i18n="physics_settings">⚙️ Physics Settings</h3>
+                    <button class="reset-button" onclick="resetPhysics()" data-i18n="btn_reset">Reset</button>
+                </div>
+                <div class="info-panel">
+                    <div class="info-row">
+                        <span data-i18n="density">Density</span>
+                        <input class="physics-input" type="number" id="density" value="0.5" step="0.1">
+                    </div>
+                    <div class="info-row">
+                        <span data-i18n="restitution">Restitution</span>
+                        <input class="physics-input" type="number" id="restitution" value="0.1" step="0.1">
+                    </div>
+                    <div class="info-row">
+                        <span data-i18n="friction">Friction</span>
+                        <input class="physics-input" type="number" id="friction" value="0.2" step="0.1">
+                    </div>
+                    <div class="info-row">
+                        <span data-i18n="collision_group">Collision Group</span>
+                        <input class="physics-input" type="number" id="group" value="1">
+                    </div>
+                    <div class="physics-flags">
+                        <label class="physics-flag"><input type="checkbox" id="sensor"> <span data-i18n="sensor">Sensor</span></label>
+                        <label class="physics-flag"><input type="checkbox" id="awake" checked> <span data-i18n="awake">Awake</span></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-section section">
+                <div class="important-note" data-i18n="important_note">
+                    <b>Important:</b> In your Object's physics settings, under "Modify Collision Shape", set the "Physics Collision Shape" type to "Convex Shape" and leave it empty.
+                </div>
+
+                <h3 data-i18n="gml_code">📋 GML Code</h3>
+                <div class="code-actions">
+                    <button class="flex-fill btn btn-success" onclick="generateCode()" data-i18n="btn_generate">Generate Code</button>
+                    <button class="flex-fill btn btn-primary" onclick="copyCode()" data-i18n="btn_copy" id="copyBtn">Copy</button>
+                </div>
+                <div class="code-output" id="codeOutput">// Code will appear here...</div>
+                <div class="warning" id="warningMsg"></div>
+                <label><input type="checkbox" id="showFixtureDebug" onchange="updateDrawCode()"> <span data-i18n="debug_option">Show fixture outlines in GameMaker</span></label>
+                <div id="drawCodePanel" hidden>
+                    <h3 data-i18n="draw_event">Draw Event</h3>
+                    <p class="important-note" data-i18n="debug_sprite_note">Warning: Make sure a sprite is assigned to the object.</p>
+                    <pre class="code-output" id="drawCodeOutput"></pre>
+                    <button class="btn btn-primary" onclick="copyCode('drawCodeOutput', 'copyDrawBtn')" id="copyDrawBtn" data-i18n="btn_copy">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="toolbar">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="changeZoom(-0.1)" data-i18n-title="zoom_out">-</button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button class="zoom-btn" onclick="changeZoom(0.1)" data-i18n-title="zoom_in">+</button>
+                </div>
+                <button class="btn btn-secondary" onclick="resetView()" data-i18n="btn_center">Center View</button>
+                <div class="flex-fill"></div>
+                <div class="toolbar-hints">
+                    <span data-i18n="mouse">Mouse</span>: <span id="mouseX">0</span>, <span id="mouseY">0</span> | <span data-i18n="pan_hint">Mid-Click to Pan</span> | <span data-i18n="del_hint">DEL/Arrows to Edit</span> | <span class="undo-hint" data-i18n="undo_hint"></span>
+                </div>
+            </div>
+            <div class="canvas-container">
+                <canvas id="mainCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/locales/en.js"></script>
+    <script src="js/locales/tr.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/geometry.js"></script>
+    <script src="js/presets.js"></script>
+    <script src="js/measurement.js"></script>
+    <script src="js/shapes.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/codegen.js"></script>
+    <script src="js/project.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
